@@ -70,7 +70,7 @@ categories: jekyll update
 
 Firefox 和 Chrome 都独自开发了一套特别的通信机制。
 
-<span id="2"><b>渲染引擎</b></span>  
+<span id="2"><b>2. 渲染引擎</b></span>  
 
 渲染引擎的职责就是进行渲染， 也就是负责把请求到的内容呈现在浏览器屏幕上。
 
