@@ -70,9 +70,47 @@ categories: jekyll update
 
 Firefox 和 Chrome 都独自开发了一套特别的通信机制。
 
-<b>渲染引擎</b>  
+<span id="2"><b>渲染引擎</b></span>  
 
 渲染引擎的职责就是进行渲染， 也就是负责把请求到的内容呈现在浏览器屏幕上。
 
+在默认情况下，渲染引擎能够展示HTML，XML以及image文档。也能通过插件来展示其他类型的文档。例如通过PDF视图插件可以展示PDF。我们将会在特定的章节讨论插件和扩展程序。本章节主要着重于主要的情况-如何展示由css格式化的HTML和images。
+
+<span id="2.1"><b>渲染引擎</b></span>  
+
+我们参考的Firefox,Chrome,Safari浏览器都是基于两个渲染引擎建立的。 Firefox 使用 Gecko, 一个Mozilla自己开发的引擎。Safari 和 Chrome 都是使用的Webkit引擎。Webkit 引擎最开始是用于linux平台的开源引擎。后续被修改用于支持Apple的Mac以及 Windows系统。 详情移步[http://webkit.org/](http://webkit.org/)
+
+<span id="2.2"><b>主要渲染流程</b></span>  
+
+渲染引擎将会从网络层请求到内容开始进行工作。这通常的大小在8k以内。
+
+在这之后，以下就是渲染引擎基本的流程：
+
+![渲染引擎基本流程](/images/flow.png)
+    Figure 2: Render engine basic flow.  
+
+解析HTML， 生成DOM tree -> 渲染render tree结构 -> 组织render tree 的布局  -> 在窗口绘制 render tree
+
+渲染引擎会解析HTML文档，把HTML文档解析为“内容树(content tree)”， 并把HTML标签转换为树中的[DOM](http://taligarsiel.com/Projects/howbrowserswork1.htm#DOM)节点。渲染引擎还要解析样式文件，包含外链样式文件以及内联样式元素。样式信息和HTML当中可视化的指令将会用于创建另外一个树 - 渲染树 （[render tree](http://taligarsiel.com/Projects/howbrowserswork1.htm#Render_tree_construction)）。
+
+渲染树包含了具有颜色以及尺寸等可视化属性的矩形盒子集合。这些矩形盒子都是按照在屏幕上的显示顺序排序的。
+
+在构造晚渲染树之后，将会经过“[layout](http://taligarsiel.com/Projects/howbrowserswork1.htm#layout)”过程。意思就是给每一个节点设置在屏幕上显示的确切坐标位置。下一个阶段是绘制([painting](http://taligarsiel.com/Projects/painting)) - 渲染树将会通过UI的后台处理层，每一个节点都将会被绘制。
+
+了解渲染的过程是一个循序渐进的过程很重要。为了达到更好的用户体验，渲染引擎将会尽可能快的把内容展示在屏幕上。它并不会等到所有的HTML都解析完之后才去构建和布局渲染树。当请求到一部分内容的时候，引擎将会解析和渲染这一部分内容，同时程序也将继续解析从网络中请求到的余下的内容。
+
+<span id="2.3"><b>渲染流程示例</b></span>  
+
+![webkit flow](/images/webkitflow.png)
+    Figure 3: Webkit main flow
+
+![Gecko flow](/images/geckoflow.png)
+    Figure 4: Mozilla's Gecko rendering engine main flow
+
+从图3 和图4 中可以看到尽管Webkit 和 Gecko 使用了稍微不同的术语，但是流程是基本相同的。
+Gecko 把格式化的元素形象的称为：Frame tree（结构树）。每一个元素都是一个框架。Webkit 使用术语：Render tree， 它由Render Object 组成。Webkit把设置元素的位置称为layout，而 Gecko称为Reflow。 Webkit 把连接DOM节点和视觉信息生成渲染树称为Attachment。另外一个较小的非语义上的差别是Gecko在HTML与DOM树之间多了额外的一层。叫做content sink, 它是创建DOM元素的工厂。我们将会逐个了解流程的每一部分。
+
+
+<b>通常的解析</b>
 
 ... 未完待续
