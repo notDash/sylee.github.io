@@ -177,4 +177,97 @@ term := INTEGER | expression
 
 解析器有两种类型： 自上而下 和 自下而上 的解析器。 自上而下的解析器是从语法层级比较高的地方着手进行匹配解析。自下而上的解析方式是从输入开始，逐级向上翻译为对应的语法规则，直到语法层级较高的规则为止。  
 
-。。。
+让我们结合实例来看看这两种解析方式：  
+
+自上而下的解析将会从层级比较高的规则开始： 它将把 2 + 3 定义为一个表达式。然后再把 2 + 3 -1 定义为一个表达式。  
+自下而上的解析将会扫描整个输入的字符串，如果有符合的规则， 则会根据规则替换匹配项，直到替换玩整个输入。匹配的表达式将会存储在解析器栈里。  
+
+| Stack                | Input         |  
+|:---------------------|:--------------|  
+|                      | 2 + 3 - 1     |  
+| term                 | + 3 - 1       |  
+| term operation       | 3 - 1         |  
+| expression           | - 1           |  
+| expression operation | 1             |  
+| expression           |               |  
+
+自下而上的解析方式又称之为移动减少解析器（shift reduce parser），因为输入是从左向右移动的，并且根据规则匹配主键减少。  
+
+**自动生成解析器**  
+
+可以通过工具生成解析器，被称之为解析器生成器。 你只需要提供语言的词汇以及语法规则，它就能够生成一个可用的解析器。创建一个解析器徐傲对解析有深入的理解。不太容易手动创建一个解析器，所有解析器生成器会比较有用。  
+
+Webkit 使用两个比较出名的解析器生成器： Flex 用于创建词法分析器， Bison用于创建解析器（你可以使用Lex 和 Yacc来运行）。Flex的输入是包含通常的表达式定义的一个文件。Bison 的输入是BNF格式的语法规则。  
+
+**HTML 解析器**  
+
+HTML解析器的职责是把HTML标记转换为解析树。  
+
+**HTML 语法定义**  
+
+HTML的词汇和语法在w3c创建的[规范](http://taligarsiel.com/Projects/howbrowserswork1.htm#w3c)里定义。  
+
+**非上下文无关的程序语言**  
+
+在解析一节的介绍里，我们知道程序语法可以通过BNF格式进行定义。  
+但是不幸的是，所有常规的解析器都不适用于HTML。HTML不能够被轻易的定义为解析器需要的上下文无关的程序语法。  
+有一个定义HTML的通用格式-DTD（Document Type Definition), 不过并不是上下文无关的语法。  
+一眼看上去， HTML与XML非常的接近。 有很多的XML解析器。有一个HTML的XML变体-XXHTML。这二者有什么不用呢？  
+不同之处在于HTML的目的在于非严谨的，它允许忽略你某些标签，并隐式的添加上，例如有时候允许忽略开始或者结束标签。不同于XML语法的严格和硬性要求，HTML整体上都是比较宽泛的。  
+一方面这也是HTML如此浏览的一个原因，允许你犯错，让web开发更容易。另一方面，它导致很难定义一个语法格式。总结起来说， HTML比较难解析，由于并不是一个上下文无关的编程语法，它不能够被普通的解析器解析， 也不能被XML解析器解析。  
+
+**HTML DTD**  
+
+HTML是通过DTD来定义的。 这个格式用于定义SGML(Standard Generalized Markup Language)语言。 它定义了所有允许的元素，属性以及层级。正如我们之前所说的， HTML DTD 不能形成上下文无关的语言。  
+DTD有一些变动，严格模式严格符合规范，其他的模式支持历史版本的浏览器。 目的也是为了兼容老版本的浏览器。 最新的严格DTD地址：[http://www.w3.org/TR/html4/strict.dtd](http://www.w3.org/TR/html4/strict.dtd)  
+
+**DOM**  
+
+解析树是由DOM元素以及属性节点组成的。 DOM是Document Objectd Model 的简称。 它是HTML文档的对象形式以及其他外部语言(形如Javascript)的接口。树的根节点是 [Document](https://www.w3.org/TR/1998/REC-DOM-Level-1-19981001/level-one-core.html#i-Document) 对象。  
+
+DOM与标签之前有着一对一的对应关系。 例如： 
+
+        <html>
+	        <body>
+		        <p>
+			        Hello World
+		        </p>
+		        <div> <img src="example.png"/></div>
+	        </body>
+        </html>  
+
+将会被翻译为以下的DOM树：  
+    ![](/sylee.github.io/images/dom-tree-of-markup.png)  
+    Figure 8: DOM tree of the example markup  
+
+跟HTML一样， DOM也是被w3c组织定义和管理的。详见[http://www.w3.org/DOM/DOMTR](http://www.w3.org/DOM/DOMTR)。 它是操作文档的通用规范。 一个特定的模块描述了HTML特定的元素。 HTML定义可以参见[http://www.w3.org/TR/2003/REC-DOM-Level-2-HTML-20030109/idl-definitions.html](http://www.w3.org/TR/2003/REC-DOM-Level-2-HTML-20030109/idl-definitions.html)。  
+
+当我说树包含了DOM节点， 意即树是由实现了DOM接口的元素构建的。 不同的浏览器使用了具体的实现，这些实现包含了浏览器内部使用的其他属性。  
+
+**解析算法**  
+
+在前几节中，我们知道， HTML不能够通过自上而下或者自下而上的解析器解析。  
+原因如下：  
+    1. 语言的非严谨性。  
+    2. 浏览器具有传统的容错机制，用于支持很好的辨别无效的HTML。  
+    3. 解析进程的反复迭代机制。 在解析的过程中，解析源通常都不会被改变， 但是在HTML中， script标签包含了document.write， 可以添    加额外的元素，所以解析过程中修改了原始输入。  
+
+由于不能够使用通常的解析器就行解析， 浏览器为解析HTML创建了定制的解析器。  
+解析算法在HTML5规范中有详细的描述。 算法由两步构成： 符号化 和 构建树。  
+符号化即词法分析，把输入解析为一组符号。 HTML的符号包括开始标签， 结束标签， 属性名和属性值。  
+标记生成器识别不同的标记， 并把它传递给树构造器，紧接着识别下一个标记， 周而复始， 直到结束。  
+![](/sylee.github.io/images/html-parsing-flow.png)  
+    Figure 6: HTML parsing flow (taken from HTML5 spec)  
+
+**符号化的算法**  
+
+算法的结果是一个HTML的标签。 算法被表示为状态机。 每一个状态消耗一个或者多个输入流的字符，然后根据选中的字符跟更新下一个状态。 当前的执行会被符号化的状态和构建树的状态所影响。 这意味着， 相同的符号处理，将会产生不同的结果，根据当前的状体来纠正下一个状态。这个算法太复杂了， 因此不能完整的呈现出来。 所有我们通过一个简单的实例来帮助我们理解这个原则。  
+
+基础实例： 符号化已下的HTML：  
+
+        <html>
+	        <body>
+		        Hello world
+	        </body>
+        </html>    
+
