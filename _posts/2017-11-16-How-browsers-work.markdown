@@ -61,7 +61,7 @@ categories: jekyll update
     5. 用户界面的后台处理程序(UI Backend) - 用于绘制类似于 bombo 盒子的小部件以及一些窗口。它抛出了各个平台通用的接口。它的底层是使用了操作系统的用户界面方法。  
     6. Javascript 解释器。 用于解析和执行Javascrip代码。  
     7. 数据存储。 这是一个持久层。浏览器需要在硬盘上保存各种各样的数据，比如coocies。HTNL5规范定义了'web database',针对浏览器的完整的数据库（尽管比较轻量）  
-    ![浏览器主要组成部分](/images/layers.png)  
+    ![浏览器主要组成部分](/sylee.github.io/images/layers.png)  
         Figure 1: Browser main components.  
 
 值得注意的是，Chrome不像其他的浏览器， 它给每一个tab分配一个渲染引擎的实例，每一个tab都是一个独立的进程。
@@ -86,7 +86,7 @@ Firefox 和 Chrome 都独自开发了一套特别的通信机制。
 
 在这之后，以下就是渲染引擎基本的流程：
 
-![渲染引擎基本流程](/images/flow.png)
+![渲染引擎基本流程](/sylee.github.io/images/flow.png)
     Figure 2: Render engine basic flow.  
 
 解析HTML， 生成DOM tree -> 渲染render tree结构 -> 组织render tree 的布局  -> 在窗口绘制 render tree
@@ -101,10 +101,10 @@ Firefox 和 Chrome 都独自开发了一套特别的通信机制。
 
 <span id="2.3"><b>渲染流程示例</b></span>  
 
-![webkit flow](/images/webkitflow.png)
+![webkit flow](/sylee.github.io/images/webkitflow.png)
     Figure 3: Webkit main flow
 
-![Gecko flow](/images/geckoflow.png)
+![Gecko flow](/sylee.github.io/images/geckoflow.png)
     Figure 4: Mozilla's Gecko rendering engine main flow
 
 从图3 和图4 中可以看到尽管Webkit 和 Gecko 使用了稍微不同的术语，但是流程是基本相同的。
@@ -115,8 +115,9 @@ Gecko 把格式化的元素形象的称为：Frame tree（结构树）。每一�
 
 既然解析在渲染引擎内是一个非常重要的过程，我们将会深入的了解它。
 文档解析，亦即把它转换为一种代码可以理解和使用的结构。解析的结果通常是一个表示文档结构的<b>节点树</b>。它被称为解析树或者<b>语法树</b>。
-例如：2 + 3 - 1 的表达式解析结果为
-![运算表达式的树节点](/images/mathematical-expression.png)
+例如：2 + 3 - 1 的表达式解析结果为  
+
+![运算表达式的树节点](/sylee.github.io/images/mathematical-expression.png)
     Figure 5: 运算表达式的树节点
 
 <b>文法</b>
@@ -129,7 +130,7 @@ Gecko 把格式化的元素形象的称为：Frame tree（结构树）。每一�
 词法分析是把输入的内容分解为很多符号的一个过程。这些符号是构成语言的词汇(构建语言有效的块集合)。在人类的语言中，它就是某种语言在字典中的所有单词所组成的。
 语法分析就是语言语法规则的应用。
 解析器的工作通常分为两个内容：<b>词法分析器</b>（有时称为 标记生成器）负责把输入分解为很多符号，<b>解析器</b>负责根据该语言的语法规则来分析文档结构，从而构建解析树。词法分析器知道如何区分和解释特殊的字符，例如空格和换行符。
-![document to parse trees](/images/document-parsetree.png)
+![document to parse trees](/sylee.github.io/images/document-parsetree.png)
     Figure 6: from source document to parse trees
 
 解析的过程是迭代式的。解析器通常会向词法分析器询问是否有新的符号，并且试图通过一条语法规则的来进行匹配。如果符合某条语法规则，该符号对应的节点将会被添加到解析树，紧接着解析器会询问另外一个符号就行解析。
@@ -138,7 +139,7 @@ Gecko 把格式化的元素形象的称为：Frame tree（结构树）。每一�
 <b>翻译</b>
 
 通常解析树并不是最终的结果。解析结果通常被翻译-把文档翻译为另外一种格式。一个例子就是汇编。编译器会把源码编译为机器码，首先会把源码解析为解析树，然后再把解析树翻译为机器码文档。
-![compilation flow](/images/compilation-flow.png)
+![compilation flow](/sylee.github.io/images/compilation-flow.png)
     Figure 7: compilation flow
 
 <b>解析实例</b>
@@ -154,3 +155,26 @@ Gecko 把格式化的元素形象的称为：Frame tree（结构树）。每一�
     4. 操作符为加号或者减号  
     5. 运算项为一个整数或者一个表达式。
 
+分析下："2 + 3 - 1"。  
+根据上面第5条规则，第一个匹配规则的子串是"2"。第二个匹配的的结果是"2 + 3"，它对应第二条规则。下一个匹配的结果已经到了该输入项的结尾。我们已经知道了形如?2 + 3?表示一个完整项，那么 "2 + 3 + 1"就是一个表达式。"2 + +" 是一个无效的输入，因为没有匹配任何规则。  
+
+<b>正式的定义词汇和语法</b>  
+
+词汇通常都通过常规的表达式来表示。  
+例如我们将会像下面这样来定义我们的语言：  
+INTER :0|[1-9][0-9]*  
+PLUS : +  
+MINUS : -  
+如你所见，整数是通过常规的表达式来表达的。  
+语法是遵循[BNF（Backus Naur form）](/sylee.github.io/2017/11/20/What-is-BNF(Backus-Naur-form).html)来定义的。我们的语言将会做如下的定义:   
+expression := term operation tem  
+operation := PLUS | MINUS  
+term := INTEGER | expression  
+
+我们之前说过，如果程序的语法是一个上下文无关的语法，就可以使用通常的解析器进行解析。上下文无关的语法，最直观的定义就是可以完全使用BNF来表示。可以参见[http://en.wikipedia.org/wiki/Context-free_grammar](http://en.wikipedia.org/wiki/Context-free_grammar)  
+
+<b>解析器类型</b>  
+
+解析器有两种类型： 自上而下 和 自下而上 的解析器。 自上而下的解析器是从语法层级比较高的地方着手进行匹配解析。自下而上的解析方式是从输入开始，逐级向上翻译为对应的语法规则，直到语法层级较高的规则为止。  
+
+。。。
