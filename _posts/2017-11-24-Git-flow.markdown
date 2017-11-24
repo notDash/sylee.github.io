@@ -1,0 +1,129 @@
+---
+layout: default
+title:  "Git flow!"
+date:   2017-11-24 12:50:00 +0800
+---
+# [Git flow](http://nvie.com/posts/a-successful-git-branching-model/)
+
+**[集中式工作流](http://blog.jobbole.com/76847/)**
+
+**[功能分支工作流](http://blog.jobbole.com/76857/)**
+
+**[Gitfow工作流](http://blog.jobbole.com/76867/)**
+
+---------------------------------------------------
+
+根据[Vincent Driessen](http://nvie.com/about/)的文章描述，git flow 的工作流程图如下：
+
+![Vincent Driessen git flow](/sylee.github.io/images/git-flow.png)
+
+git flow 的主要分支有两个，master和develop。这两个分支是长期维护的，并且这两个分支的代码应该是同步的。另外使用其他的临时性分支来进行项目的开发维护。
+
+## 1. master 主分支
+
+* master分支具有所有的历史版本。主要用于版本的管理。每一次发版之后，都会基于此次发版在master上建立一个tag，用于版本的跟踪。
+
+* master 上的代码永远是稳定的。
+
+* 不直接向master push 代码。
+
+## 2. develop 开发分支
+
+develop分支主要用于开发管理，作为功能的集成分支。
+
+## 3. 临时性分支
+
+    feature-
+
+    release-
+
+    hotfix-
+
+## 4. 功能(feature)分支
+
+* 功能分支从develop 检出
+
+* 必须合并回develop
+
+* 命名避免使用 master, develop, release-*, or hotfix-* 。 （feature-[name]-[feature]）
+
+        $git checkout -b feature-lsy-entry develop
+
+基于develop创建并检出一个新的分支，用于新功能的开发。如果功能开发完毕之后，需要上线，此时可以把 feature-lsy-entry 合并到develop 分支上。此时可以进行code review 。合并的操作并不由开发者直接操作，而是发起一个Pull Request， 在gitlab 为Merge Request。当通过code review 之后，即可进行合并。
+
+    $git checkout develop
+
+    $git merge --no-ff feature-lsy-entry （--no-ff no fast forward 会产生新的提交记录。）
+
+    $git branch -d feature-lsy-entry
+
+    $git push origin develop
+
+## 5. 预发布(release)分支
+
+* release 从 develop 检出
+
+* 必须合并回 develop 以及合并到 master
+
+* 命名惯例： release-*
+
+预发布分支用于进行发布前的集成回归，可以基于此进行bug的修改。修改完成后，合并回develop以及master， 并且在master 上打一个tag，同时进行上线。可以在push master的时候设置钩子进行发布的构建。
+
+    $ git checkout -b release-1.2 develop
+
+在确认没有问题之后，可以合并到master分支：
+
+    $ git checkout master
+
+    $ git merge --no-ff release-1.2
+
+    # 对合并生成的新节点，做一个标签
+
+    $ git tag -a 1.2
+
+再合并回develop 分支：
+
+    $ git checkout develop
+
+    $ git merge --no-ff release-1.2
+
+    $ git branch -d release-1.2
+
+## 6. bug修改(fixbug)分支
+
+如果线上发布的版本需要紧急修复，可以直接从master上检出一个hotfix的分支，用于bug 修改。
+
+* 从master 检出
+
+* 必须合并回master
+
+* 必须合并到develop
+
+* 命名惯例： hotfix-*
+
+
+        $ git checkout -b hotfix-1.2.1 master
+
+        #修改完毕之后合并回master
+
+        $ git checkout master
+
+        $ git merge --no-ff hotfix-1.2.1
+
+        $ git tag -a 1.2.1
+
+        #合并到develop
+
+        $ git checkout develop
+
+        $ git merge --no-ff hotfix-1.2.1
+
+        $ git branch -d hotfix-1.2.1
+
+**注意：**当在进行bug fix 的时候如果有一个release 正在发版，则应该把hotfix合并到release上，而不是develop。因为release最终上线之后会合并回develop。 如果直接合并回develop，那release上线的版本依然存在bug。
+
+## 7. 基于master 的 tag
+
+    git tag -a 0.1 -m "Initial public release" master
+
+    git push --tags

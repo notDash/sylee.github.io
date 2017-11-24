@@ -4,7 +4,7 @@ title:  "浏览器是如何工作的!"
 date:   2017-11-16 16:17:56 +0800
 categories: jekyll update
 ---
-# [{{page.title}}](http://taligarsiel.com/Projects/howbrowserswork1.htm)  
+# [{{page.title}}](http://taligarsiel.com/Projects/howbrowserswork1.htm)
 
 * [1. 介绍](#1)  
     * [1.1 本文涉及到的浏览器](#1.1)  
