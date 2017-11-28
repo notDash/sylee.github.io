@@ -104,12 +104,15 @@ trunk分支主要用于开发管理，作为功能的集成分支。当有新的
 
 此时开发的分支就建立好了。 我们在本地开始开发，如果是多人协同进行一个功能的开发的话，建议再基于dev-tradeEntry在本地检出自己开发的分支进行开发feature-tradeEntry-lsy，然后再合并到dev-tradeEntry分支上。
 
-        # **推荐命名规范： feature-[功能模块名称/与dev功能模块名一致]-[开发者姓名]**
+推荐命名规范： **feature-[功能模块名称/与dev功能模块名一致]-[开发者姓名]**
+
         $ git checkout -b feature-tradeEntry-lsy dev-tradeEntry
 
 开发完成需要合并：
 
         $git checkout dev-tradeEntry
+
+        $git pull
 
         $git merge --no-ff feature-tradeEntry-lsy （--no-ff no fast forward 会产生新的提交记录。）
 
@@ -133,6 +136,8 @@ trunk分支主要用于开发管理，作为功能的集成分支。当有新的
 
         $git checkout trunk
 
+        $git pull
+
         $git merge --no-ff test-tradeEntry （--no-ff no fast forward 会产生新的提交记录。）
 
         $git branch -d test-tradeEntry
@@ -155,6 +160,8 @@ trunk分支主要用于开发管理，作为功能的集成分支。当有新的
 
     $ git checkout master
 
+    $ git pull
+
     $ git merge --no-ff release-1.2
 
     # 对合并生成的新节点，做一个标签
@@ -164,6 +171,8 @@ trunk分支主要用于开发管理，作为功能的集成分支。当有新的
 再合并回trunk 分支：
 
     $ git checkout trunk
+
+    $ git pull
 
     $ git merge --no-ff release-1.2
 
@@ -188,6 +197,8 @@ trunk分支主要用于开发管理，作为功能的集成分支。当有新的
 
         $ git checkout master
 
+        $ git pull
+
         $ git merge --no-ff hotfix-1.2.1
 
         $ git tag -a 1.2.1
@@ -195,6 +206,8 @@ trunk分支主要用于开发管理，作为功能的集成分支。当有新的
         #合并到trunk
 
         $ git checkout trunk
+
+        $ git pull
 
         $ git merge --no-ff hotfix-1.2.1
 
@@ -207,4 +220,3 @@ trunk分支主要用于开发管理，作为功能的集成分支。当有新的
     git tag -a 0.1 -m "Initial public release" master
 
     git push --tags
-
