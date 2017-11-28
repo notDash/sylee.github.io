@@ -120,10 +120,18 @@ develop分支主要用于开发管理，作为功能的集成分支。
 
         $ git branch -d hotfix-1.2.1
 
-**注意：**当在进行bug fix 的时候如果有一个release 正在发版，则应该把hotfix合并到release上，而不是develop。因为release最终上线之后会合并回develop。 如果直接合并回develop，那release上线的版本依然存在bug。
+**注意：**当在进行bug fix 的时候如果有一个release 正在发版，则应该把hotfix合并到release上，而不是develop。
 
 ## 7. 基于master 的 tag
 
     git tag -a 0.1 -m "Initial public release" master
 
     git push --tags
+
+## 8. 我们的问题
+
+* 项目没发布
+
+* 如何code review
+
+* 不同公司功能定制
