@@ -17,7 +17,11 @@ date:   2017-11-28 17:13:00 +0800
 
 ![Vincent Driessen git flow](/sylee.github.io/images/git-flow.png)
 
-git flow 的主要分支有两个，master和trunk。这两个分支是长期维护的，并且这两个分支的代码应该是同步的。另外使用其他的临时性分支来进行项目的开发维护。我们自己的流程与上图提到的流程略有不同。以下是详细的描述：
+git flow 的主要分支有两个，master和trunk。这两个分支是长期维护的，并且这两个分支的代码应该是同步的。另外使用其他的临时性分支来进行项目的开发维护。
+
+我们自己的流程与上图提到的流程略有不同。以下是详细的描述：
+
+![Git flow inside](/sylee.github.io/images/gitflow/git-flow-inside.svg)
 
 ## 1. master 主分支
 
