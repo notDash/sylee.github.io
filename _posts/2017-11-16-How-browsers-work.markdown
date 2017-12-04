@@ -281,16 +281,53 @@ DOM与标签之前有着一对一的对应关系。 例如：
 ![](/sylee.github.io/images/html-parsing-flow.png)  
     Figure 6: HTML parsing flow (taken from HTML5 spec)  
 
-**符号化的算法**  
+**符号化的算法**
 
-算法的结果是一个HTML的标签。 算法被表示为状态机。 每一个状态消耗一个或者多个输入流的字符，然后根据选中的字符跟更新下一个状态。 当前的执行会被符号化的状态和构建树的状态所影响。 这意味着， 相同的符号处理，将会产生不同的结果，根据当前的状体来纠正下一个状态。这个算法太复杂了， 因此不能完整的呈现出来。 所有我们通过一个简单的实例来帮助我们理解这个原则。  
+算法的输出结果是一个HTML的标签。 算法被表示为状态机。 每一个状态消耗一个或者多个输入流的字符，然后根据选中的字符跟更新下一个状态。 当前的执行会被符号化的状态和构建树的状态所影响。 这意味着， 相同的符号处理，将会产生不同的结果，根据当前的状体来纠正下一个状态。这个算法太复杂了， 因此不能完整的呈现出来。 所有我们通过一个简单的实例来帮助我们理解这个原则。  
 
-基础实例： 符号化以下的HTML：  
+基础实例： 符号化以下的HTML：
 
         <html>
-	        <body>
-		        Hello world
-	        </body>
-        </html>    
+            <body>
+                Hello world
+            </body>
+        </html>
 
-未完。。。
+初始状态是"Data state"。当遇到"<"符号的时候 ，状态被变更为"Tag open state"。在处理"a-z"之间的字符时会创建"Start tag token"，状态被变更为"Tag name state"。状态会一直保持，直到遇到">"字符。每一个字符都会被添加到新的标签名里。在我们的事例里创建的是一个"html"标签。
+
+当处理到">"符号的时候，当前的标签就回被发送出去，同时状态会变更回"Data state"。"<body>"标签也以同样的方式进行处理。到目前为止，"html"和"body"标签都被触发。我们现在回到了"Data state"。
+
+处理"Hello world"中的"H"字符会创建和出发一个字符标签，直到遇到"</bodu>"的"<"符号为止。我们会为"Hello world"的每一个字符都触发一个字符标签。
+
+现在我们回到"Tag open state"。处理"/"会创建一个"end tag token"，并且状态变更为"Tag name state"。我们依然保留当前状态直到遇到">"为止。之后新的标签就回被出发，状态返回"Data state"。"</html>"的处理方式雷同。
+
+![Tokenizing the example input](/sylee.github.io/images/tokenizing-input.png)
+
+Figure 9: Tokenizing the example input
+
+**树结构算法**
+
+当解析器被创建的时候，文档对象也会被创建。在构建树结构的过程中，文档的DOM树将会被修改，相应的元素将会被添加进去。标记生成器创建的每一个节点都会被树构造器处理。规范中定义的每一个DOM元素关联的标记都会被创建。除了把元素添加到DOM树之外，还会被添加到"open elements"栈中。这个栈被用于纠正不匹配的嵌套以及处理未关闭的标签。这个算法过程也被描述为一个状态机。状态被称为"insertion modes"。
+
+让我们看看事例中构造树的过程：
+
+        <html>
+            <body>
+                Hello world
+            </body>
+        </html>
+
+树构造阶段接收的输入是从字符化阶段传入的字符序列。第一个模式是"initial mode"。当接收到html标签的时候，会移动到"before html"模式，同时再对标签进行处理。此时会创建一个HTMLHtmlElement元素，这个元素会被添加到文档对象的根节点。
+
+之后状态将会变为"before head"。我们会接收到body标签，此时将会隐式的创建一个HTMLHeadElementut元素并添加到DOM树里，尽管示例中并没有head标签。
+
+紧接着移动到"in head"，然后是"after head"。body标签会被再加工，一个HTMLBodyElement将会被创建和添加到DOM树， 模式会移动到"in body"。
+
+接下来会接收到"Hello world"字符串。处理第一个字符的时候会创建一个"Text"节点，其他的字符会被添加到这个节点中。
+
+当接收到body结束标签的时候会移动到"after body"模式。此时我们会接收到html结束标签，会移动到"after after body"模式。接收到文件结束标签的时候将会结束解析。
+
+![tree construction of example html](/sylee.github.io/images/tree-construction.gif)
+
+Figure 10: tree construction of example html
+
