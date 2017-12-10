@@ -331,3 +331,135 @@ Figure 9: Tokenizing the example input
 
 Figure 10: tree construction of example html
 
+**解析之后的动作**
+
+在这一步浏览器将会把文档标记为可交互的，同时开始解析在“defferred”模式下的scripts文件（在文档解析完成之后将会被执行）。文档的状态将会被修改为“complete”，同时触发一个“load”事件。
+
+你可以在HTML5规范里查看标记化以及构建树的完整算法。[https://www.w3.org/TR/html5/syntax.html](https://www.w3.org/TR/html5/syntax.html)
+
+**浏览器的容错**
+
+在HTML页面里你永远不会收到一个“语法无效”的错误。浏览器会处理无效的内容。
+
+以下面的HTML为例：
+
+        <html>
+            <mytag>
+            </mytag>
+            <div>
+            <p>
+            </div>
+                Really lousy HTML
+            </p>
+        </html>
+
+我已经违反了很多规则（“mytag”不是标准的标签，“p”和“div”标签的错误嵌套等等），但是浏览器仍然会把内容正确的展示出来，并不会报错。所以有很多的解析代码来修复了HTML开发者的错误。
+
+浏览器中的错误处理始终是一致的，但是让人比较惊讶的是它并不是当前HTML规范的一部分。它就像书签和前进后退按钮一样，只是多年以来在浏览器中开发出来的某个东西。 在很多站点中都已知很多无效的HTML结构，浏览器会试着已一致的方式修复它们，以顺应其他浏览器。
+
+HTML5规范针对这些要求做了一些定义。Webkit在HTML解析类开始的注释中做了很好的描述：
+
+    The parser parses tokenized input into the document, building up the document tree. If the document is well-formed, parsing it is straightforward.
+    
+    Unfortunately, we have to handle many HTML documents that are not well-formed, so the parser has to be tolerant about errors.
+    
+    We have to take care of at least the following error conditions:
+    
+    1. The element being added is explicitly forbidden inside some outer tag.
+    In this case we should close all tags up to the one, which forbids the element, and add it afterwards.
+    
+    2. We are not allowed to add the element directly. 
+    It could be that the person writing the document forgot some tag in between (or that the tag in between is optional).
+    This could be the case with the following tags: HTML HEAD BODY TBODY TR TD LI (did I forget any?).
+    
+    3. We want to add a block element inside to an inline element. Close all inline elements up to the next higher block element.
+    
+    4. If this doesn't help, close elements until we are allowed to add the element or ignore the tag.
+
+让我们看看Webkit的容错示例：
+
+    </br> instead of <br>
+
+某些站点使用\</br\>代替\<br\>。为了兼容IE和Firefox, Webkit 使用\<br>。
+
+代码：
+
+    if (t->isCloseTag(brTag) && m_document->inCompatMode()) {
+        reportError(MalformedBRError);
+        t->beginTag = true;
+    }
+
+    注意： 错误处理是在内容，并不会呈现给用户。
+
+错乱的table
+
+错乱偏离的table是指在另外一个table里但是却不在table cell里的table。
+
+就像下面的例子：
+
+    <table>
+        <table>
+            <tr><td>inner table</td></tr>
+            </table>
+        <tr><td>outer table</td></tr>
+    </table>
+
+Webkit 就会把结构修改为两个子table
+
+    <table>
+        <tr><td>outer table</td></tr>
+    </table>
+    <table>
+        <tr><td>inner table</td></tr>
+    </table>
+
+代码：
+
+    if (m_inStrayTableContent && localName == tableTag)
+        popBlock(tableTag);
+
+Webkit 使用栈来管理当前元素内容，它会弹出内部table，再入栈到外部table的栈中。table至此就相邻了。 
+
+嵌套的表单元素
+
+以防用户在form 中放置另外一个form, 第二个form将会被忽略。
+
+    if (!m_currentFormElement) {
+        m_currentFormElement = new HTMLFormElement(formTag,    m_document);
+    }
+
+过深的标签层级
+
+注释不言而喻。
+
+    www.liceo.edu.mx is an example of a site that achieves a level of nesting of about 1500 tags, all from a bunch of <b>s.
+    We will only allow at most 20 nested tags of the same type before just ignoring them all together.
+
+代码：
+
+    bool HTMLParser::allowNestedRedundantTag(const AtomicString& tagName)
+    {
+
+    unsigned i = 0;
+    for (HTMLStackElem* curr = m_blockStack;
+            i < cMaxRedundantTagDepth && curr && curr->tagName == tagName;
+        curr = curr->next, i++) { }
+    return i != cMaxRedundantTagDepth;
+    }
+
+html和body结束标签的错放
+
+看注释：
+
+    Support for really broken html.
+    We never close the body tag, since some stupid web pages close it before the actual end of the doc.
+    Let's rely on the end() call to close things.
+    
+    if (t->tagName == htmlTag || t->tagName == bodyTag )
+        return;
+
+所以web开发者需要注意： 除非你想呈现一个Webkit容错的示例代码，否则请编写完整的HTML标签。
+
+**CSS解析**
+
+待续... 
