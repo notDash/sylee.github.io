@@ -1,0 +1,82 @@
+---
+layout: default
+title:  "现代的模块机制(来自【你不知道的Javascript】)"
+date:   2018-03-17
+---
+# 现代模块机制
+
+---------------------------------------------------
+
+大多数的模块依赖加载器、管理器本质上都是通过将模块定义封装进一个友好的API。
+
+    var MyModules = (function(){
+
+        // 模块里以key / value 的形式存储了模块
+        var modules = {};
+
+        /*
+        name : 模块的名称
+        deps : 模块的依赖 模块名称的集合
+        impl : 模块的具体实现
+        */
+        function define(name, deps, impl) {
+            // 看看是否有依赖。有依赖的话，需要把依赖模块都传入当当前模块的作用域中
+            for(var i = 0; i < deps.length; i++) {
+                // 通过模块名称，在modules中查找响应的模块，替换到数组中
+                deps[i] = modules[deps[i]];
+            }
+            // 把依赖模块传递到当前模块的方法中，然后把当前模块的封装返回，再把当前的模块存储起来
+            modules[name] = impl.apply(impl, deps);
+        }
+
+        function get(name) {
+            return modules[name];
+        }
+
+        return {
+            define: define,
+            get: get
+        }
+
+    })();
+
+
+
+    // 使用模块加载器
+    // 定义zhangsan
+    MyModules.define('zhangsan', [], function() {
+        function hello(who) {
+            return 'Let me introduce: ' + who;
+        }
+
+        return {
+            hello: hello
+        }
+    })
+
+    // 定义lisi， 依赖于zhangsan
+    MyModules.define('lisi', ['zhangsan'], function(zhangsan) {
+        
+        var lisi = 'lisi'
+
+        function awesome() {
+            console.log(zhangsan.hello( lisi ).toUpperCase());
+        }
+
+        return {
+            awesome: awesome
+        }
+    })
+
+    var zhangsan = MyModules.get('zhangsan');
+    var lisi = MyModules.get('lisi');
+
+    console.log(
+        zhangsan.hello('lisi')
+    );
+
+    lisi.awesome();
+
+
+
+
