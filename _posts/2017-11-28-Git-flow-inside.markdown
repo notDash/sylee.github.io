@@ -114,6 +114,12 @@ trunk分支主要用于开发管理，作为功能的集成分支。当有新的
 
 开发完成需要合并：
 
+        $git add .
+
+        $git commit -m 'feat(模块名): 提交信息'
+
+        $git push
+
         $git checkout dev-tradeEntry
 
         $git pull
@@ -125,6 +131,7 @@ trunk分支主要用于开发管理，作为功能的集成分支。当有新的
 开发完成，需要提交测试 dev -> test:
 
 由于需要做code review 。 合并的操作并不由开发者直接操作，而是发起一个Pull Request， 在gitlab 为Merge Request。当通过code review 之后，即可进行合并。
+
 
 进入gitlab dev分支页面，创建一个合并请求：
 
