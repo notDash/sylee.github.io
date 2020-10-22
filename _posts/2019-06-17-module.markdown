@@ -1,0 +1,302 @@
+---
+layout: default
+title:  "基于Node.js的大文件分片上传"
+date:   2019-06-17
+---
+# 基于Node.js的大文件分片上传
+
+---------------------------------------------------
+
+我们在做文件上传的时候，如果文件过大，可能会导致请求超时的情况。所以，在遇到需要对大文件进行上传的时候，就需要对文件进行分片上传的操作。同时如果文件过大，在网络不佳的情况下，如何做到断点续传？也是需要记录当前上传文件，然后在下一次进行上传请求的时候去做判断。
+
+先上代码：[代码仓库地址][1]
+
+## 前端
+
+### 1. index.html
+
+```
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>文件上传</title>
+
+    <script src="https://cdn.bootcss.com/axios/0.18.0/axios.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.4.1.js"></script>
+    <script src="./spark-md5.min.js"></script>
+
+    <script>
+
+        $(document).ready(() => {
+            const chunkSize = 1 * 1024 * 1024; // 每个chunk的大小，设置为1兆
+            // 使用Blob.slice方法来对文件进行分割。
+            // 同时该方法在不同的浏览器使用方式不同。
+            const blobSlice =
+                File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice;
+
+            const hashFile = (file) => {
+                return new Promise((resolve, reject) => {
+                    
+                    const chunks = Math.ceil(file.size / chunkSize);
+                    let currentChunk = 0;
+                    const spark = new SparkMD5.ArrayBuffer();
+                    const fileReader = new FileReader();
+                    function loadNext() {
+                        const start = currentChunk * chunkSize;
+                        const end = start + chunkSize >= file.size ? file.size : start + chunkSize;
+                        fileReader.readAsArrayBuffer(blobSlice.call(file, start, end));
+                    }
+                    fileReader.onload = e => {
+                        spark.append(e.target.result); // Append array buffer
+                        currentChunk += 1;
+                        if (currentChunk < chunks) {
+                            loadNext();
+                        } else {
+                            console.log('finished loading');
+                            const result = spark.end();
+                            // 如果单纯的使用result 作为hash值的时候, 如果文件内容相同，而名称不同的时候
+                            // 想保留两个文件无法保留。所以把文件名称加上。
+                            const sparkMd5 = new SparkMD5();
+                            sparkMd5.append(result);
+                            sparkMd5.append(file.name);
+                            const hexHash = sparkMd5.end();
+                            resolve(hexHash);
+                        }
+                    };
+                    fileReader.onerror = () => {
+                        console.warn('文件读取失败！');
+                    };
+                    loadNext();
+                }).catch(err => {
+                    console.log(err);
+                });
+            }
+
+            const submitBtn = $('#submitBtn');
+            submitBtn.on('click', async () => {
+                const fileDom = $('#file')[0];
+                // 获取到的files为一个File对象数组，如果允许多选的时候，文件为多个
+                const files = fileDom.files;
+                const file = files[0];
+                if (!file) {
+                    alert('没有获取文件');
+                    return;
+                }
+                const blockCount = Math.ceil(file.size / chunkSize); // 分片总数
+                const axiosPromiseArray = []; // axiosPromise数组
+                const hash = await hashFile(file); //文件 hash 
+                // 获取文件hash之后，如果需要做断点续传，可以根据hash值去后台进行校验。
+                // 看看是否已经上传过该文件，并且是否已经传送完成以及已经上传的切片。
+                console.log(hash);
+                
+                for (let i = 0; i < blockCount; i++) {
+                    const start = i * chunkSize;
+                    const end = Math.min(file.size, start + chunkSize);
+                    // 构建表单
+                    const form = new FormData();
+                    form.append('file', blobSlice.call(file, start, end));
+                    form.append('name', file.name);
+                    form.append('total', blockCount);
+                    form.append('index', i);
+                    form.append('size', file.size);
+                    form.append('hash', hash);
+                    // ajax提交 分片，此时 content-type 为 multipart/form-data
+                    const axiosOptions = {
+                        onUploadProgress: e => {
+                            // 处理上传的进度
+                            console.log(blockCount, i, e, file);
+                        },
+                    };
+                    // 加入到 Promise 数组中
+                    axiosPromiseArray.push(axios.post('/file/upload', form, axiosOptions));
+                }
+                // 所有分片上传后，请求合并分片文件
+                await axios.all(axiosPromiseArray).then(() => {
+                    // 合并chunks
+                    const data = {
+                        size: file.size,
+                        name: file.name,
+                        total: blockCount,
+                        hash
+                    };
+                    axios
+                        .post('/file/merge_chunks', data)
+                        .then(res => {
+                            console.log('上传成功');
+                            console.log(res.data, file);
+                            alert('上传成功');
+                        })
+                        .catch(err => {
+                            console.log(err);
+                        });
+                });
+            });
+
+        })
+        
+        window.onload = () => {
+        }
+
+    </script>
+
+</head>
+<body>
+    <h1>大文件上传测试</h1>
+    <section>
+        <h3>自定义上传文件</h3>
+        <input id="file" type="file" name="avatar"/>
+        <div>
+            <input id="submitBtn" type="button" value="提交">
+        </div>
+    </section>
+
+</body>
+</html>
+```
+
+### 2. 依赖的文件
+[axios.js][2]
+[jquery][3]
+[spark-md5.js][4]
+    
+    
+## 后端
+
+### 1. app.js
+
+```
+const Koa = require('koa');
+const app = new Koa();
+const Router = require('koa-router');
+const multer = require('koa-multer');
+const serve = require('koa-static');
+const path = require('path');
+const fs = require('fs-extra');
+const koaBody = require('koa-body');
+const { mkdirsSync } = require('./utils/dir');
+const uploadPath = path.join(__dirname, 'uploads');
+const uploadTempPath = path.join(uploadPath, 'temp');
+const upload = multer({ dest: uploadTempPath });
+const router = new Router();
+app.use(koaBody());
+/**
+ * single(fieldname)
+ * Accept a single file with the name fieldname. The single file will be stored in req.file.
+ */
+router.post('/file/upload', upload.single('file'), async (ctx, next) => {
+    console.log('file upload...')
+    // 根据文件hash创建文件夹，把默认上传的文件移动当前hash文件夹下。方便后续文件合并。
+    const {
+        name,
+        total,
+        index,
+        size,
+        hash
+    } = ctx.req.body;
+
+    const chunksPath = path.join(uploadPath, hash, '/');
+    if(!fs.existsSync(chunksPath)) mkdirsSync(chunksPath);
+    fs.renameSync(ctx.req.file.path, chunksPath + hash + '-' + index);
+    ctx.status = 200;
+    ctx.res.end('Success');
+})
+
+router.post('/file/merge_chunks', async (ctx, next) => {
+    const {
+        size, name, total, hash
+    } = ctx.request.body;
+    // 根据hash值，获取分片文件。
+    // 创建存储文件
+    // 合并
+    const chunksPath = path.join(uploadPath, hash, '/');
+    const filePath = path.join(uploadPath, name);
+    // 读取所有的chunks 文件名存放在数组中
+    const chunks = fs.readdirSync(chunksPath);
+    // 创建存储文件
+    fs.writeFileSync(filePath, ''); 
+    if(chunks.length !== total || chunks.length === 0) {
+        ctx.status = 200;
+        ctx.res.end('切片文件数量不符合');
+        return;
+    }
+    for (let i = 0; i < total; i++) {
+        // 追加写入到文件中
+        fs.appendFileSync(filePath, fs.readFileSync(chunksPath + hash + '-' +i));
+        // 删除本次使用的chunk
+        fs.unlinkSync(chunksPath + hash + '-' +i);
+    }
+    fs.rmdirSync(chunksPath);
+    // 文件合并成功，可以把文件信息进行入库。
+    ctx.status = 200;
+    ctx.res.end('合并成功');
+})
+app.use(router.routes());
+app.use(router.allowedMethods());
+app.use(serve(__dirname + '/static'));
+app.listen(9000);
+```
+
+### 2. utils/dir.js
+
+```
+const path = require('path');
+const fs = require('fs-extra');
+const mkdirsSync = (dirname) => {
+    if(fs.existsSync(dirname)) {
+        return true;
+    } else {
+        if (mkdirsSync(path.dirname(dirname))) {
+            fs.mkdirSync(dirname);
+            return true;
+        }
+    }
+}
+module.exports = {
+    mkdirsSync
+};
+```
+
+## 操作步骤说明
+
+### 服务端的搭建
+
+> 我们以下的操作都是保证在已经安装node以及npm的前提下进行。node的安装以及使用可以参考[官方网站][5]。
+
+ 1. 新建项目文件夹file-upload
+ 2. 使用npm初始化一个项目：cd file-upload && npm init
+ 3. 安装相关依赖
+        npm i koa
+        npm i koa-router --save    // Koa路由
+        npm i koa-multer  --save   // 文件上传处理模块
+        npm i koa-static --save    // Koa静态资源处理模块
+        npm i fs-extra --save      // 文件处理
+        npm i koa-body --save      // 请求参数解析
+       
+ 4. 创建项目结构
+        file-upload
+            - static
+                - index.html
+                - spark-md5.min.js
+            - uploads
+                - temp
+            - utils
+                - dir.js
+            - app.js
+            
+ 5. 复制相应的代码到指定位置即可
+ 6. 项目启动：node app.js (可以使用 nodemon 来对服务进行管理)
+ 7. 访问：http://localhost:9000/index.html
+
+> 其中细节部分代码里有相应的注释说明，浏览代码就一目了然。
+后续延伸：断点续传、多文件多批次上传
+    
+
+
+  [1]: https://gitee.com/lsy69221/file-upload
+  [2]: https://cdn.bootcss.com/axios/0.18.0/axios.min.js
+  [3]: https://code.jquery.com/jquery-3.4.1.js
+  [4]: https://www.npmjs.com/package/spark-md5
+  [5]: https://nodejs.org/zh-cn/
